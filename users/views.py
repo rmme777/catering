@@ -1,12 +1,11 @@
-from typing import Any
-from django.contrib.auth.hashers import make_password
 from rest_framework import permissions, routers, serializers, viewsets
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
+from typing import Any
+from django.contrib.auth.hashers import make_password
+from rest_framework import serializers
 from .models import User
-
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
