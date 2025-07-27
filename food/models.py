@@ -1,5 +1,5 @@
 from django.db import models
-from .enums import OrderStatus
+from .enums import OrderStatus, DeliveryProvider
 from django.conf import settings
 
 class Restaurant(models.Model):
