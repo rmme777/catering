@@ -13,6 +13,8 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.admin.views.decorators import staff_member_required
 
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 class DishSerializer(serializers.ModelSerializer):
     exclude = ["restaurant"]
@@ -110,6 +112,7 @@ class FoodAPIViewSet(viewsets.GenericViewSet):
         elif self.action == "create_dish":
             return [permissions.IsAdminUser]
 
+    @method_decorator(cache_page(10))
     @action(methods=["get"], detail=False)
     def dishes(self, request: Request) -> Response:
         filters = FoodFilters(**request.query_params.dict())
