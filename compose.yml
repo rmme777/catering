@@ -1,0 +1,37 @@
+services:
+  api: &api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - database
+      - cache
+      - mailing
+    volumes:
+      - ./:/app/
+  database:
+    image: postgres:17
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  cache:
+    image: redis:7
+    ports:
+      - "6380:6379"
+  mailing:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+
+volumes:
+  pgdata:

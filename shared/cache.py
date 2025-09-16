@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from django.core.cache import cache  # uses whatever BACKEND is configured
+from django.core.cache import cache
 
 
 @dataclass
@@ -11,11 +11,6 @@ class Structure:
 
 
 class CacheService:
-    """
-    set(namespace='user_activation', key='12', value=Activation(...))
-    get(namespace='user_activation', key='12') -> Activation(...)
-    """
-
     @staticmethod
     def _build_key(namespace: str, key: str) -> str:
         return f"{namespace}:{key}"
