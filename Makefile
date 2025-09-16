@@ -4,14 +4,10 @@ install:
 installdev:
 	pipenv lock && pipenv sync --dev
 
-build:
-	docker build -t catering-api .
-
 clean:
 	docker image prune -f && \
 	docker system prune -a -f && \
 	docker builder prune -a -f
-
 
 run:
 	python manage.py runserver
