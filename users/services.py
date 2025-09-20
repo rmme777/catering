@@ -6,12 +6,24 @@ from shared.cache import CacheService
 
 from .models import User
 
+from config import celery_app
+
+
+@celery_app.task(queue="default")
+def send_user_activation_email(email: str, activation_key: str):
+    # SMTP Client Send Email Request
+    activation_link = f"http://127.0.0.1:8000/users/activate/{activation_key}"
+    send_mail(
+        subject="User Activation",
+        message=f"Please, activate your account: {activation_link}",
+        from_email="admin@catering.com",
+        recipient_list=[email],
+    )
 
 class ActivationService:
     UUID_NAMESPACE = uuid.uuid4()
 
-    def __init__(self, email: str | None = None):
-        self.email: str | None = email
+    def __init__(self):
         self.cache: CacheService = CacheService()
 
     @staticmethod
@@ -37,23 +49,11 @@ class ActivationService:
             namespace="activation",
             key=activation_key,
             value={"user_id": user_id},
-            ttl=300,
+            ttl=3000,
         )
 
         return None
 
-    def send_user_activation_email(self, activation_key: str):
-        if self.email is None:
-            raise ValueError("No email specified for user activation process")
-
-        # SMTP Client Send Email Request
-        activation_link = f"http://127.0.0.1:8000/users/activate/{activation_key}"
-        send_mail(
-            subject="User Activation",
-            message=f"Please, activate your account: {activation_link}",
-            from_email="admin@catering.com",
-            recipient_list=[self.email],
-        )
 
     def activate_user(self, activation_key: str) -> User:
         user_cache_payload: dict | None = self.cache.get(

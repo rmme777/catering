@@ -8,9 +8,10 @@ from typing import Any
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import serializers
 from .models import User
-from .services import ActivationService
+from .services import ActivationService, send_user_activation_email
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
+
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -63,15 +64,16 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        email = getattr(serializer.instance, "email")
 
-        activation_service = ActivationService(email=getattr(serializer.instance, "email"))
+        activation_service = ActivationService()
 
         activation_key = activation_service.create_activation_key()
         activation_service.save_activation_information(
             user_id=getattr(serializer.instance, "id"),
             activation_key=activation_key
         )
-        activation_service.send_user_activation_email(activation_key=activation_key)
+        send_user_activation_email.delay(email=email, activation_key=activation_key)
 
         return Response(UserSerializer(serializer.instance).data, status=201)
 
@@ -115,13 +117,13 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        activation_service = ActivationService(email=email)
+        activation_service = ActivationService()
         activation_key = activation_service.create_activation_key()
         activation_service.save_activation_information(
             user_id=user.id,
             activation_key=activation_key
         )
-        activation_service.send_user_activation_email(activation_key=activation_key)
+        send_user_activation_email.delay(email=email, activation_key=activation_key)
 
         return Response({"message": "Activation email sent"}, status=200)
 

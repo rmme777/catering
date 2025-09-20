@@ -25,13 +25,44 @@ services:
   cache:
     image: redis:7
     ports:
-      - "6380:6379"
+      - "6381:6379"
   mailing:
     image: axllent/mailpit:latest
     ports:
       - "1025:1025"
       - "8025:8025"
-
+  silpo-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: silpo
+    container_name: catering-silpo-mock
+    ports:
+      - "8001:8000"
+  kfc-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: kfc
+    container_name: catering-kfc-mock
+    ports:
+      - "8002:8000"
+  uklon-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: uklon
+    container_name: catering-uklon-mock
+    ports:
+      - "8003:8000"
+  broker:
+    image: rabbitmq:3-management
+    ports:
+      - "5673:5672"   # AMQP
+      - "15672:15672" # Web UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
 
 volumes:
   pgdata:
