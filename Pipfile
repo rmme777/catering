@@ -26,3 +26,4 @@ mypy="~=1.15.0"   # types checking
 uvicorn = "~=0.35.0"
 pydantic = "~=2.11.7"
 celery-types = "~=0.23.0"
+watchdog = "~=6.0.0"

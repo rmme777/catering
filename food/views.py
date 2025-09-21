@@ -1,8 +1,9 @@
 import csv
 import io
+import json
 from datetime import date
 from typing import Any
-
+from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
@@ -14,11 +15,12 @@ from rest_framework.pagination import LimitOffsetPagination, PageNumberPaginatio
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from shared.cache import CacheService
 from users.models import Role, User
 
 from .enums import DeliveryProvider
 from .models import Dish, Order, OrderItem, OrderStatus, Restaurant
-from .services import schedule_order
+from .services import schedule_order, all_orders_cooked
 
 
 class DishSerializer(serializers.ModelSerializer):
@@ -258,16 +260,67 @@ def import_dishes(request):
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
+@csrf_exempt
+def kfc_webhook(request: Request):
+    """Process KFC Order webhooks."""
+
+    print("KFC Webhook is Handled")
+
+    data: dict = json.loads(json.dumps(request.POST))
+
+    cache = CacheService()
+    restaurant = Restaurant.objects.get(name="kfc")
+    kfc_cache_order = cache.get("kfc_orders", key=data["id"])
+
+    # get internal order from the mapping
+    # add logging if order wasn't found
+
+    order: Order = Order.objects.get(id=kfc_cache_order["internal_order_id"])
+    tracking_order = TrackingOrder(**cache.get(namespace="orders", key=str(order.pk)))
+    tracking_order.restaurants[str(restaurant.pk)] |= {
+        "external_id": data["id"],
+        "status": OrderStatus.COOKED,
+    }
+
+    cache.set(namespace="orders", key=str(order.pk), value=asdict(tracking_order))
+
+    all_orders_cooked(order.pk)
+
+    return JsonResponse({"message": "ok"})
+
+@csrf_exempt
+def uklon_webhook(request: Request):
+    """Process Uklon delivery webhooks."""
+
+    print("Uklon Webhook is Handled")
+    data: dict = request.POST.dict()
+
+    cache = CacheService()
+    order_id = data.get("id")
+    status = data.get("status")
+    location = data.get("location")
+
+
+    uklon_cache_order = cache.get("uklon_orders", key=order_id)
+    if not uklon_cache_order:
+        return JsonResponse({"error": "Unknown uklon order"}, status=404)
+
+    order: Order = Order.objects.get(id=uklon_cache_order["internal_order_id"])
+    tracking_order = TrackingOrder(**cache.get(namespace="orders", key=str(order.pk)))
+
+    internal_status = PROVIDER_EXTERNAL_TO_INTERNAL["uklon"][status]
+
+    tracking_order.delivery["status"] = internal_status
+    tracking_order.delivery["location"] = location
+
+    cache.set("orders", str(order.pk), asdict(tracking_order))
+
+    # если доставлено — апдейтим заказ
+    if internal_status == OrderStatus.DELIVERED:
+        Order.objects.filter(id=order.pk).update(status=OrderStatus.DELIVERED)
+
+    return JsonResponse({"message": "ok"})
+
 
 router = routers.DefaultRouter()
 router.register(prefix="", viewset=FoodAPIViewSet, basename="food")
-
-# /food/
-
-
-# HTTP Resource
-# POST /users
-# GET /users
-# GET /users/ID
-# PUT /users/ID
-# DELETE /users/ID
