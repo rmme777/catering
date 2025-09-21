@@ -21,6 +21,7 @@ from users.models import Role, User
 from .enums import DeliveryProvider
 from .models import Dish, Order, OrderItem, OrderStatus, Restaurant
 from .services import schedule_order, all_orders_cooked
+from .mapper import PROVIDER_EXTERNAL_TO_INTERNAL
 
 
 class DishSerializer(serializers.ModelSerializer):
