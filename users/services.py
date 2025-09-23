@@ -54,7 +54,7 @@ class ActivationService:
 
         return None
 
-    def activate_user(self, activation_key: str) -> User:
+    def activate_user(self, activation_key: str) -> User | bool:
         user_cache_payload: dict | None = self.cache.get(
             namespace="activation",
             key=activation_key,

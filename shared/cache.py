@@ -20,7 +20,7 @@ class CacheService:
         cache.set(self._build_key(namespace, key), payload, timeout=ttl)
 
     def get(self, namespace: str, key: str):
-        result: str | None = cache.get(self._build_key(namespace, key))  # type: ignore
+        result: str | None = cache.get(self._build_key(namespace, key))
         if result is None:
             return None
         else:

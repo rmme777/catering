@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+from dataclasses import asdict
 from datetime import date
 from typing import Any
 
@@ -12,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, routers, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.pagination import LimitOffsetPagination, PageNumberPagination
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,16 +21,13 @@ from shared.cache import CacheService
 from users.models import Role, User
 
 from .enums import DeliveryProvider
-from .models import Dish, Order, OrderItem, OrderStatus, Restaurant
-<<<<<<< HEAD
-from .services import schedule_order, all_orders_cooked
 from .mapper import PROVIDER_EXTERNAL_TO_INTERNAL
-=======
-from .services import all_orders_cooked, schedule_order
->>>>>>> 7883316 (preparation for deploy)
+from .models import Dish, Order, OrderItem, OrderStatus, Restaurant
+from .services import TrackingOrder, all_orders_cooked, schedule_order
 
 
 class DishSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Dish
         exclude = ["restaurant"]
@@ -49,7 +47,7 @@ class OrderItemSerializer(serializers.Serializer):
 
 
 class OrderSerializer(serializers.Serializer):
-    id = serializers.PrimaryKeyRelatedField(read_only=True)
+    id: serializers.PrimaryKeyRelatedField = serializers.PrimaryKeyRelatedField(read_only=True)
     items = OrderItemSerializer(many=True)
     eta = serializers.DateField()
     total = serializers.IntegerField(min_value=1, read_only=True)
@@ -84,7 +82,7 @@ class KFCOrderSerializer(serializers.Serializer):
 
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        assert type(request.user) == User
+        assert type(request.user) is User
         user: User = request.user
 
         if user.role == Role.ADMIN:
@@ -96,7 +94,7 @@ class IsAdmin(permissions.BasePermission):
 class BaseFitlers:
     @staticmethod
     def camel_to_snake_case(value):
-        result = []
+        result: list[str] = []
         for char in value:
             if char.isupper():
                 if result:
@@ -291,7 +289,7 @@ def kfc_webhook(request: Request):
 
     all_orders_cooked(order.pk)
 
-    return JsonResponse({"message": "ok"})
+    return Response({"message": "ok"}, status=200)
 
 
 @csrf_exempt
@@ -302,13 +300,13 @@ def uklon_webhook(request: Request):
     data: dict = request.POST.dict()
 
     cache = CacheService()
-    order_id = data.get("id")
-    status = data.get("status")
+    order_id: str = str(data.get("id"))
+    status: str = data.get("status")
     location = data.get("location")
 
     uklon_cache_order = cache.get("uklon_orders", key=order_id)
     if not uklon_cache_order:
-        return JsonResponse({"error": "Unknown uklon order"}, status=404)
+        return Response({"error": "Unknown uklon order"}, status=404)
 
     order: Order = Order.objects.get(id=uklon_cache_order["internal_order_id"])
     tracking_order = TrackingOrder(**cache.get(namespace="orders", key=str(order.pk)))
@@ -320,11 +318,10 @@ def uklon_webhook(request: Request):
 
     cache.set("orders", str(order.pk), asdict(tracking_order))
 
-    # если доставлено — апдейтим заказ
     if internal_status == OrderStatus.DELIVERED:
         Order.objects.filter(id=order.pk).update(status=OrderStatus.DELIVERED)
 
-    return JsonResponse({"message": "ok"})
+    return Response({"message": "ok"}, status=200)
 
 
 router = routers.DefaultRouter()

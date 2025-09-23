@@ -1,6 +1,7 @@
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import AbstractBaseUser
 from rest_framework import permissions, routers, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -78,7 +79,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
         return Response(UserSerializer(serializer.instance).data, status=201)
 
     @action(methods=["GET"], detail=False, url_path=r"activate/(?P<key>[0-9a-f-]+)")
-    def activate(self, request: Request, key: str = None):
+    def activate(self, request: Request, key: None | str = None):
         if key is None:
             raise ValidationError("Activation key is required")
 
@@ -94,7 +95,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
                 status=404,
             )
 
-        refresh = RefreshToken.for_user(user)
+        refresh = RefreshToken.for_user(cast(AbstractBaseUser, user))
         return Response(
             {
                 "refresh": str(refresh),
@@ -105,7 +106,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
 
     @action(methods=["POST"], detail=False, url_path="reactivate")
     def reactivate(self, request: Request):
-        email = request.data.get("email")
+        email: str = request.data.get("email")
         raw_password = request.data.get("password")
         user = get_object_or_404(User, email=email)
 
@@ -113,7 +114,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
             return Response({"detail": "User already activated"}, status=403)
 
         if not check_password(raw_password, user.password):
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid credentials"}, status=400)
 
         activation_service = ActivationService()
         activation_key = activation_service.create_activation_key()

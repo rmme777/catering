@@ -149,7 +149,7 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
             # ✨ MAKE THE FIRST REQUEST IF NOT STARTED
             response: silpo.OrderResponse = client.create_order(
                 silpo.OrderRequestBody(
-                    order=[silpo.OrderItem(dish=item.dish.name, quantity=item.quantity) for item in items]
+                    order=[silpo.OrderItem(dish=item.dish.name, quantity=str(item.quantity)) for item in items]
                 )
             )
 
