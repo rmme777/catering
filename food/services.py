@@ -7,11 +7,12 @@ from config import celery_app
 from shared.cache import CacheService
 
 from .enums import OrderStatus
-from .mapper import RESTAURANT_EXTERNAL_TO_INTERNAL, PROVIDER_EXTERNAL_TO_INTERNAL
+from .mapper import PROVIDER_EXTERNAL_TO_INTERNAL, RESTAURANT_EXTERNAL_TO_INTERNAL
 from .models import Order, OrderItem, Restaurant
 from .providers import kfc, silpo, uklon
 
 ORDER_LIFE_TIME = 604800
+
 
 @dataclass
 class TrackingOrder:
@@ -56,6 +57,7 @@ def all_orders_cooked(order_id: int):
         order_delivery.delay(order_id)
     else:
         print(f"Not all orders are cooked: {tracking_order=}")
+
 
 @celery_app.task(queue="default")
 def order_delivery(order_id: int):
@@ -102,6 +104,7 @@ def order_delivery(order_id: int):
 
     print(f"🏁 UKLON order created [{response.id}] status={response.status} 📍 {response.location}")
 
+
 @celery_app.task(queue="default")
 def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
     """Short polling requests to the Silpo API
@@ -145,13 +148,10 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
         if not silpo_order["external_id"]:
             # ✨ MAKE THE FIRST REQUEST IF NOT STARTED
             response: silpo.OrderResponse = client.create_order(
-                    silpo.OrderRequestBody(
-                        order=[
-                            silpo.OrderItem(dish=item.dish.name, quantity=item.quantity)
-                            for item in items
-                        ]
-                    )
+                silpo.OrderRequestBody(
+                    order=[silpo.OrderItem(dish=item.dish.name, quantity=item.quantity) for item in items]
                 )
+            )
 
             internal_status: OrderStatus = get_internal_status(response.status)
 
@@ -160,27 +160,19 @@ def order_in_silpo(order_id: int, items: QuerySet[OrderItem]):
                 "external_id": response.id,
                 "status": internal_status,
             }
-            cache.set(
-                namespace="orders", key=str(order_id), value=asdict(tracking_order), ttl=ORDER_LIFE_TIME
-            )
+            cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order), ttl=ORDER_LIFE_TIME)
         else:
             # ✨ IF ALREADY HAVE EXTERNAL ID - JUST RETRIEVE THE ORDER
             # PASS EXTERNAL SILPO ORDER ID
             response = client.get_order(silpo_order["external_id"])
             internal_status = get_internal_status(response.status)
 
-            print(
-                f"Tracking for Silpo Order with HTTP GET /api/order. Status: {internal_status}"
-            )
+            print(f"Tracking for Silpo Order with HTTP GET /api/order. Status: {internal_status}")
 
             if silpo_order["status"] != internal_status:  # STATUS HAS CHANGED
-                tracking_order.restaurants[str(restaurant.pk)][
-                    "status"
-                ] = internal_status
+                tracking_order.restaurants[str(restaurant.pk)]["status"] = internal_status
                 print(f"Silpo order status changed to {internal_status}")
-                cache.set(
-                    namespace="orders", key=str(order_id), value=asdict(tracking_order), ttl=ORDER_LIFE_TIME
-                )
+                cache.set(namespace="orders", key=str(order_id), value=asdict(tracking_order), ttl=ORDER_LIFE_TIME)
                 # if started cooking?
                 if internal_status == OrderStatus.COOKING:
                     Order.objects.filter(id=order_id).update(status=OrderStatus.COOKING)
@@ -231,7 +223,6 @@ def order_in_kfc(order_id: int, items):
         Order.objects.filter(id=order_id).update(status=OrderStatus.COOKED)
 
 
-
 def schedule_order(order: Order):
     # define services and data state
     cache = CacheService()
@@ -259,7 +250,4 @@ def schedule_order(order: Order):
             case "kfc":
                 order_in_kfc.delay(order.pk, items)
             case _:
-                raise ValueError(
-                    f"Restaurant {restaurant.name} is not available for processing"
-                )
-
+                raise ValueError(f"Restaurant {restaurant.name} is not available for processing")

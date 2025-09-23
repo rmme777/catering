@@ -3,11 +3,12 @@ import io
 import json
 from datetime import date
 from typing import Any
-from django.views.decorators.csrf import csrf_exempt
+
 from django.db import transaction
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, routers, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -20,8 +21,12 @@ from users.models import Role, User
 
 from .enums import DeliveryProvider
 from .models import Dish, Order, OrderItem, OrderStatus, Restaurant
+<<<<<<< HEAD
 from .services import schedule_order, all_orders_cooked
 from .mapper import PROVIDER_EXTERNAL_TO_INTERNAL
+=======
+from .services import all_orders_cooked, schedule_order
+>>>>>>> 7883316 (preparation for deploy)
 
 
 class DishSerializer(serializers.ModelSerializer):
@@ -132,9 +137,7 @@ class BaseFitlers:
 
 
 class FoodFilters(BaseFitlers):
-    def extract_delivery_provider(
-        self, provider: str | None = None
-    ) -> DeliveryProvider | None:
+    def extract_delivery_provider(self, provider: str | None = None) -> DeliveryProvider | None:
         if provider is None:
             return None
         else:
@@ -261,6 +264,7 @@ def import_dishes(request):
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
+
 @csrf_exempt
 def kfc_webhook(request: Request):
     """Process KFC Order webhooks."""
@@ -289,6 +293,7 @@ def kfc_webhook(request: Request):
 
     return JsonResponse({"message": "ok"})
 
+
 @csrf_exempt
 def uklon_webhook(request: Request):
     """Process Uklon delivery webhooks."""
@@ -300,7 +305,6 @@ def uklon_webhook(request: Request):
     order_id = data.get("id")
     status = data.get("status")
     location = data.get("location")
-
 
     uklon_cache_order = cache.get("uklon_orders", key=order_id)
     if not uklon_cache_order:

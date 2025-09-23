@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
-import os
+
 from kombu import Queue
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -31,7 +32,6 @@ DEBUG = os.getenv("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = ["*"]
 
 
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     # 3-rd party
     "rest_framework",
     "rest_framework_simplejwt",
-
     # local apps
     "users",
     "food",
@@ -131,12 +130,8 @@ AUTH_USER_MODEL = "users.User"
 
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
 }
 
 
@@ -175,4 +170,3 @@ CELERY_TASK_QUEUES = (
 
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
-

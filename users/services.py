@@ -2,11 +2,10 @@ import uuid
 
 from django.core.mail import send_mail
 
+from config import celery_app
 from shared.cache import CacheService
 
 from .models import User
-
-from config import celery_app
 
 
 @celery_app.task(queue="default")
@@ -19,6 +18,7 @@ def send_user_activation_email(email: str, activation_key: str):
         from_email="admin@catering.com",
         recipient_list=[email],
     )
+
 
 class ActivationService:
     UUID_NAMESPACE = uuid.uuid4()
@@ -53,7 +53,6 @@ class ActivationService:
         )
 
         return None
-
 
     def activate_user(self, activation_key: str) -> User:
         user_cache_payload: dict | None = self.cache.get(

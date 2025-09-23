@@ -21,7 +21,9 @@ RESTAURANT_EXTERNAL_TO_INTERNAL: dict[str, dict[str, OrderStatus]] = {
 }
 
 PROVIDER_EXTERNAL_TO_INTERNAL: dict[str, dict[str, OrderStatus]] = {
-    "uklon": {uklon.OrderStatus.NOT_STARTED: OrderStatus.NOT_STARTED,
-              uklon.OrderStatus.DELIVERY: OrderStatus.DELIVERY,
-              uklon.OrderStatus.DELIVERED: OrderStatus.DELIVERED}
+    "uklon": {
+        uklon.OrderStatus.NOT_STARTED: OrderStatus.NOT_STARTED,
+        uklon.OrderStatus.DELIVERY: OrderStatus.DELIVERY,
+        uklon.OrderStatus.DELIVERED: OrderStatus.DELIVERED,
+    }
 }

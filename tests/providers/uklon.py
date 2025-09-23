@@ -4,6 +4,7 @@ import uuid
 
 from fastapi import BackgroundTasks, FastAPI
 from pydantic import BaseModel, Field
+import httpx
 
 CATERING_API_WEBHOOK_URL = "http://api:8000/webhook/uklon/3392cc8d-843f-4999-aa72-f914072f7f69/"
 

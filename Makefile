@@ -14,3 +14,13 @@ docker:
 
 dockerdown:
 	docker compose down
+
+check:
+	python -m flake8 .
+	python -m black --check .
+	python -m isort --check .
+	python -m mypy --exclude archive --exclude docs --check-untyped-defs .
+
+fix:
+	python -m black .
+	python -m isort .

@@ -1,16 +1,17 @@
+from typing import Any
+
+from django.contrib.auth.hashers import check_password, make_password
+from rest_framework import permissions, routers, serializers, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework import permissions, routers, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from typing import Any
-from django.contrib.auth.hashers import make_password, check_password
-from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import User
 from .services import ActivationService, send_user_activation_email
-from rest_framework.decorators import action
-from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -36,9 +37,9 @@ class UserSerializer(serializers.ModelSerializer):
 
         return super().validate(attrs=attrs)
 
+
 class UserActivationSerializer(serializers.Serializer):
     key = serializers.UUIDField()
-
 
 
 class UsersAPIViewSet(viewsets.GenericViewSet):
@@ -70,8 +71,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
 
         activation_key = activation_service.create_activation_key()
         activation_service.save_activation_information(
-            user_id=getattr(serializer.instance, "id"),
-            activation_key=activation_key
+            user_id=getattr(serializer.instance, "id"), activation_key=activation_key
         )
         send_user_activation_email.delay(email=email, activation_key=activation_key)
 
@@ -89,8 +89,10 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
             raise ValidationError("Activation link expired")
 
         if not user:
-            return Response({"detail": "Activation is not available. Please use http://127.0.0.1:8000/users/reactivate."},
-                            status=404)
+            return Response(
+                {"detail": "Activation is not available. Please use http://127.0.0.1:8000/users/reactivate."},
+                status=404,
+            )
 
         refresh = RefreshToken.for_user(user)
         return Response(
@@ -98,7 +100,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
             },
-            status=200
+            status=200,
         )
 
     @action(methods=["POST"], detail=False, url_path="reactivate")
@@ -108,21 +110,14 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
         user = get_object_or_404(User, email=email)
 
         if user.is_active:
-            return Response(
-                {"detail": "User already activated"}, status=403)
+            return Response({"detail": "User already activated"}, status=403)
 
         if not check_password(raw_password, user.password):
-            return Response(
-                {"error": "Invalid credentials"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
         activation_service = ActivationService()
         activation_key = activation_service.create_activation_key()
-        activation_service.save_activation_information(
-            user_id=user.id,
-            activation_key=activation_key
-        )
+        activation_service.save_activation_information(user_id=user.id, activation_key=activation_key)
         send_user_activation_email.delay(email=email, activation_key=activation_key)
 
         return Response({"message": "Activation email sent"}, status=200)
