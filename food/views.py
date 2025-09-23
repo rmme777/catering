@@ -3,7 +3,7 @@ import io
 import json
 from dataclasses import asdict
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 from django.db import transaction
 from django.shortcuts import redirect
@@ -301,7 +301,7 @@ def uklon_webhook(request: Request):
 
     cache = CacheService()
     order_id: str = str(data.get("id"))
-    status: str = data.get("status")
+    status = cast(str, data.get("status"))
     location = data.get("location")
 
     uklon_cache_order = cache.get("uklon_orders", key=order_id)

@@ -106,7 +106,7 @@ class UsersAPIViewSet(viewsets.GenericViewSet):
 
     @action(methods=["POST"], detail=False, url_path="reactivate")
     def reactivate(self, request: Request):
-        email: str = request.data.get("email")
+        email = cast(str, request.data.get("email"))
         raw_password = request.data.get("password")
         user = get_object_or_404(User, email=email)
 

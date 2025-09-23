@@ -44,7 +44,6 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 show_error_codes = true
 namespace_packages = true
-follow_import = "silent"
 
 # [[tool.mypy.overrides]]
 # ignore_missing_imports=true
